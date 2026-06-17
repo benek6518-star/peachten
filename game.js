@@ -375,6 +375,45 @@ function calculateSelection(start, end) {
   return { minRow, maxRow, minCol, maxCol, selectedCells, activeCells, sum };
 }
 
+function hasAvailableMove() {
+  const activeValues = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+
+  board.forEach((cell) => {
+    if (!cell.removed) {
+      activeValues[cell.row][cell.col] = cell.value;
+    }
+  });
+
+  const prefix = Array.from({ length: ROWS + 1 }, () => Array(COLS + 1).fill(0));
+  for (let row = 0; row < ROWS; row += 1) {
+    for (let col = 0; col < COLS; col += 1) {
+      prefix[row + 1][col + 1] = activeValues[row][col] +
+        prefix[row][col + 1] +
+        prefix[row + 1][col] -
+        prefix[row][col];
+    }
+  }
+
+  for (let minRow = 0; minRow < ROWS; minRow += 1) {
+    for (let maxRow = minRow; maxRow < ROWS; maxRow += 1) {
+      for (let minCol = 0; minCol < COLS; minCol += 1) {
+        for (let maxCol = minCol; maxCol < COLS; maxCol += 1) {
+          const sum = prefix[maxRow + 1][maxCol + 1] -
+            prefix[minRow][maxCol + 1] -
+            prefix[maxRow + 1][minCol] +
+            prefix[minRow][minCol];
+
+          if (sum === 10) {
+            return true;
+          }
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
 function clearSelection() {
   document.querySelectorAll(".cell.selected").forEach((element) => {
     element.classList.remove("selected", "good", "over");
@@ -482,20 +521,26 @@ function finishDrag(pointerEvent) {
   }
   dragBoardRect = null;
 
+  let removedAny = false;
   if (currentSelection && currentSelection.sum === 10 && currentSelection.activeCells.length > 0) {
     currentSelection.activeCells.forEach((cell) => {
       cell.removed = true;
       animateRemoval(cell);
     });
     score += currentSelection.activeCells.length;
+    removedAny = true;
   }
 
   clearSelection();
   updateStats();
 
-  const remainingActiveCells = board.filter((cell) => !cell.removed).length;
-  if (remainingActiveCells === 0) {
-    endGame(true);
+  if (removedAny) {
+    const remainingActiveCells = board.filter((cell) => !cell.removed).length;
+    if (remainingActiveCells === 0) {
+      endGame("clear");
+    } else if (!hasAvailableMove()) {
+      endGame("noMoves");
+    }
   }
 }
 
@@ -512,7 +557,7 @@ function refreshTimer() {
   updateStats();
 
   if (remainingMs <= 0) {
-    endGame(false);
+    endGame("timeout");
   }
 }
 
@@ -561,6 +606,10 @@ function startNewGame() {
   prepareBoard();
   startScreen.hidden = true;
   gameState = "playing";
+  if (!hasAvailableMove()) {
+    endGame("noMoves");
+    return;
+  }
   startTimer();
 }
 
@@ -574,7 +623,7 @@ function showStartScreen() {
   startScreen.hidden = false;
 }
 
-function endGame(cleared) {
+function endGame(reason) {
   if (gameState !== "playing") {
     return;
   }
@@ -590,18 +639,22 @@ function endGame(cleared) {
   const remainingCount = TOTAL_CELLS - removedCount;
   finalScoreElement.textContent = String(score);
   removedCountElement.textContent = String(removedCount);
+  resultSecondaryLabelElement.textContent = "남은 과일";
+  resultSecondaryValueElement.textContent = String(remainingCount);
 
-  if (cleared) {
-    resultTitleElement.textContent = "클리어!";
-    resultMoodElement.textContent = "복숭아 바구니 완성!";
-    resultSecondaryLabelElement.textContent = "남은 시간";
-    resultSecondaryValueElement.textContent = formatTime(timeLeft);
-  } else {
-    resultTitleElement.textContent = "시간 종료!";
-    resultMoodElement.textContent = "조금만 더!";
-    resultSecondaryLabelElement.textContent = "남은 과일";
-    resultSecondaryValueElement.textContent = String(remainingCount);
-  }
+  const titles = {
+    timeout: "시간 종료!",
+    clear: "클리어!",
+    noMoves: "더 이상 조합 없음!"
+  };
+  const moods = {
+    timeout: "조금만 더!",
+    clear: "복숭아 바구니 완성!",
+    noMoves: "새 판에서 다시 도전!"
+  };
+
+  resultTitleElement.textContent = titles[reason] || titles.timeout;
+  resultMoodElement.textContent = moods[reason] || moods.timeout;
 
   gameOverElement.hidden = false;
 }
