@@ -14,7 +14,8 @@ const startButton = document.getElementById("startButton");
 const gameOverElement = document.getElementById("gameOver");
 const finalScoreElement = document.getElementById("finalScore");
 const removedCountElement = document.getElementById("removedCount");
-const remainingCountElement = document.getElementById("remainingCount");
+const resultSecondaryLabelElement = document.getElementById("resultSecondaryLabel");
+const resultSecondaryValueElement = document.getElementById("resultSecondaryValue");
 const resultTitleElement = document.getElementById("resultTitle");
 const resultMoodElement = document.getElementById("resultMood");
 const playAgainButton = document.getElementById("playAgainButton");
@@ -33,7 +34,7 @@ let dragBoardRect = null;
 let pendingDragCell = null;
 let dragFrameId = null;
 let currentSelection = null;
-let gameRunning = false;
+let gameState = "ready";
 
 function now() {
   return typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
@@ -310,7 +311,7 @@ function updateStats() {
   scoreElement.textContent = String(score);
   timeElement.textContent = formatTime(timeLeft);
 
-  timerBox.classList.toggle("is-low", gameRunning && timeLeft <= 10);
+  timerBox.classList.toggle("is-low", gameState === "playing" && timeLeft <= 10);
 }
 
 function clamp(value, min, max) {
@@ -409,7 +410,7 @@ function scheduleSelectionPaint(cell) {
 
   dragFrameId = requestFrame(() => {
     dragFrameId = null;
-    if (!isDragging || !dragStart || !pendingDragCell) {
+    if (!isDragging || !dragStart || !pendingDragCell || gameState !== "playing") {
       pendingDragCell = null;
       return;
     }
@@ -428,7 +429,7 @@ function cancelSelectionPaint() {
 }
 
 function startDrag(pointerEvent) {
-  if (!gameRunning) {
+  if (gameState !== "playing") {
     return;
   }
 
@@ -451,7 +452,7 @@ function startDrag(pointerEvent) {
 }
 
 function moveDrag(pointerEvent) {
-  if (!isDragging || !dragStart || !gameRunning) {
+  if (!isDragging || !dragStart || gameState !== "playing") {
     return;
   }
 
@@ -492,7 +493,8 @@ function finishDrag(pointerEvent) {
   clearSelection();
   updateStats();
 
-  if (board.every((cell) => cell.removed)) {
+  const remainingActiveCells = board.filter((cell) => !cell.removed).length;
+  if (remainingActiveCells === 0) {
     endGame(true);
   }
 }
@@ -544,7 +546,7 @@ function resetGameState() {
   stopTimer();
   score = 0;
   timeLeft = GAME_SECONDS;
-  gameRunning = false;
+  gameState = "ready";
   isDragging = false;
   dragStart = null;
   dragBoardRect = null;
@@ -558,22 +560,26 @@ function startNewGame() {
   resetGameState();
   prepareBoard();
   startScreen.hidden = true;
-  gameRunning = true;
+  gameState = "playing";
   startTimer();
 }
 
 function showStartScreen() {
   resetGameState();
-  prepareBoard();
+  board = [];
+  solutionGroups = [];
+  solutionSteps = [];
+  cellsByKey = new Map();
+  boardElement.innerHTML = "";
   startScreen.hidden = false;
 }
 
 function endGame(cleared) {
-  if (!gameRunning) {
+  if (gameState !== "playing") {
     return;
   }
 
-  gameRunning = false;
+  gameState = "ended";
   isDragging = false;
   dragBoardRect = null;
   cancelSelectionPaint();
@@ -584,9 +590,19 @@ function endGame(cleared) {
   const remainingCount = TOTAL_CELLS - removedCount;
   finalScoreElement.textContent = String(score);
   removedCountElement.textContent = String(removedCount);
-  remainingCountElement.textContent = String(remainingCount);
-  resultTitleElement.textContent = cleared ? "클리어!" : "시간 종료!";
-  resultMoodElement.textContent = cleared ? "복숭아 바구니 완성!" : "조금만 더!";
+
+  if (cleared) {
+    resultTitleElement.textContent = "클리어!";
+    resultMoodElement.textContent = "복숭아 바구니 완성!";
+    resultSecondaryLabelElement.textContent = "남은 시간";
+    resultSecondaryValueElement.textContent = formatTime(timeLeft);
+  } else {
+    resultTitleElement.textContent = "시간 종료!";
+    resultMoodElement.textContent = "조금만 더!";
+    resultSecondaryLabelElement.textContent = "남은 과일";
+    resultSecondaryValueElement.textContent = String(remainingCount);
+  }
+
   gameOverElement.hidden = false;
 }
 
