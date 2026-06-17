@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>피치 텐</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <header class="hud">
+      <div class="title-row">
+        <div>
+          <p class="eyebrow">Peach Orchard Puzzle</p>
+          <h1>피치 텐</h1>
+        </div>
+        <button id="restartButton" class="icon-button" type="button" aria-label="새 게임">↻</button>
+      </div>
+
+      <div class="stats-row" aria-label="게임 상태">
+        <div class="stat">
+          <span class="label">점수</span>
+          <strong id="score">0</strong>
+        </div>
+        <div class="stat timer" id="timerBox">
+          <span class="label">시간</span>
+          <strong id="time">01:40</strong>
+        </div>
+      </div>
+    </header>
+
+    <section class="game-shell" aria-label="피치 텐 보드">
+      <div id="board" class="board"></div>
+    </section>
+
+    <section id="startScreen" class="overlay">
+      <div class="result-panel start-panel">
+        <span class="panel-badge">🍑</span>
+        <p class="panel-kicker">합이 10이면 수확!</p>
+        <h2>피치 텐</h2>
+        <p class="panel-copy">드래그로 사각형을 만들고, 안의 숫자 합이 정확히 10이면 복숭아가 사라져요.</p>
+        <button id="startButton" class="primary-button" type="button">시작하기</button>
+      </div>
+    </section>
+
+    <section id="gameOver" class="overlay" hidden>
+      <div class="result-panel">
+        <span class="panel-badge">🍑</span>
+        <p id="resultMood" class="panel-kicker">조금만 더!</p>
+        <h2 id="resultTitle">시간 종료!</h2>
+        <div class="result-score">
+          <span>최종 점수</span>
+          <strong id="finalScore">0</strong>
+        </div>
+        <div class="result-grid">
+          <div>
+            <span>제거한 과일</span>
+            <strong id="removedCount">0</strong>
+          </div>
+          <div>
+            <span>남은 과일</span>
+            <strong id="remainingCount">170</strong>
+          </div>
+        </div>
+        <button id="playAgainButton" class="primary-button" type="button">다시 시작</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>
